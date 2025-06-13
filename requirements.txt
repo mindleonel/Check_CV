@@ -1,0 +1,16 @@
+streamlit
+langchain
+langchain-core
+langchain-openai
+langchain-ollama
+langchain-groq
+langchain-community
+langchain-huggingface
+huggingface-hub
+faiss-cpu
+torch
+python-dotenv
+pypdf
+PyPDF2
+sentence-transformers
+
