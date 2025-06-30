@@ -1,5 +1,6 @@
 import re
 import pandas as pd
+from langchain_huggingface import HuggingFaceEmbeddings
 
 def extract_summary_from_cv(text: str):
     summary = {
@@ -11,45 +12,49 @@ def extract_summary_from_cv(text: str):
     }
     email_match = re.search(r"[\w\.-]+@[\w\.-]+", text)
     tel_match = re.search(r"(\+?\d{1,3})?[\s-]?\(?\d{2,3}\)?[\s-]?\d{4,5}[\s-]?\d{4}", text)
+
     summary["email"] = email_match.group(0) if email_match else "Não identificado"
     summary["telefone"] = tel_match.group(0) if tel_match else "Não identificado"
-    skills_keywords = ["Python", "SQL", "Docker", "AWS", "React", "Node", "Linux", "Kubernetes"]
+
+    skills_keywords = [
+        "Python", "SQL", "Docker", "AWS", "React", "Node",
+        "Linux", "Kubernetes"
+    ]
     summary["skills_detectadas"] = [s for s in skills_keywords if s.lower() in text.lower()]
     return summary
 
 def calcular_match(cv_text: str, requisitos: list):
     if not requisitos:
         return 0.0, [], [], []
-    encontrados = [r for r in requisitos if r.lower() in cv_text.lower()]
-    faltantes = [r for r in requisitos if r.lower() not in cv_text.lower()]
+
+    encontrados = []
+    faltantes = []
+
+    for r in requisitos:
+        if r.lower() in cv_text.lower():
+            encontrados.append(r)
+        else:
+            faltantes.append(r)
+
     score = round((len(encontrados) / len(requisitos)) * 100, 1)
     return score, encontrados, faltantes, requisitos
 
-def exportar_resultados_cv(summaries: list, filename: str = "resultados_cvs", formato: str = "csv"):
-    """Exporta os resultados dos currículos para CSV ou XLSX."""
-    if not summaries:
+def exportar_resultados_cv(cv_summaries, formato="xlsx"):
+    if not cv_summaries:
         return None
 
-    dados = []
-    for resumo in summaries:
-        dados.append({
-            "Arquivo": resumo.get("nome_arquivo", ""),
-            "Email": resumo.get("email", ""),
-            "Telefone": resumo.get("telefone", ""),
-            "Score": resumo.get("score", ""),
-            "Nível": resumo.get("nivel", ""),
-            "Compatibilidade": resumo.get("compatibilidade", ""),
-            "Justificativa": resumo.get("justificativa", ""),
-            "Pontos Fortes": ", ".join(resumo.get("encontrados", [])),
-            "Pontos a Melhorar": ", ".join(resumo.get("faltantes", [])),
-        })
-
-    df = pd.DataFrame(dados)
-    file_path = f"/mnt/data/{filename}.{formato}"
+    df = pd.DataFrame(cv_summaries)
+    caminho = f"lynxtalent_resultados.{formato}"
 
     if formato == "xlsx":
-        df.to_excel(file_path, index=False)
+        df.to_excel(caminho, index=False)
+    elif formato == "csv":
+        df.to_csv(caminho, index=False)
     else:
-        df.to_csv(file_path, index=False)
+        raise ValueError("Formato não suportado. Use 'xlsx' ou 'csv'.")
 
-    return file_path
+    return caminho
+
+def get_embeddings_model():
+    # Troque aqui o modelo, se desejar usar outro compatível (ex: BAAI/bge-m3)
+    return HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")

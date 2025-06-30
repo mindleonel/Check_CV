@@ -1,11 +1,11 @@
+#VERSAO 3 
 import streamlit as st
 st.set_page_config(page_title="LynxTalent 📚", page_icon="📚")
 with open("style.css") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 import utils
-from utils import calcular_match, extract_summary_from_cv, exportar_resultados_cv
-from ui import render_cv_summary, render_match_results, style_match_score, score_color
-
+from ui import render_cv_summary, render_match_results
+from utils import calcular_match, extract_summary_from_cv
 import os, time, tempfile, hashlib, re
 from dotenv import load_dotenv
 
@@ -199,7 +199,7 @@ with st.sidebar:
 if not uploads:
     st.info("👈 Envie ao menos 1 currículo PDF.")
     st.stop()
-
+    
 if executar_match:
     if not requisitos_list:
         st.warning("⚠️ Selecione pelo menos uma área técnica ou digite uma habilidade.")
@@ -242,7 +242,6 @@ if executar_match:
         _, encontrados, faltantes, todos = calcular_match(texto, requisitos_list)
 
         with st.expander(f"{resumo['nome_arquivo']} — 🎯 Match: {score}%"):
-
             st.markdown(f"**📧 Email:** {resumo['email']}")
             st.markdown(f"**📞 Telefone:** {resumo['telefone']}")
             st.markdown(f"**🎯 Score de compatibilidade (IA):** `{score}%`")
@@ -271,13 +270,7 @@ if executar_match:
             ]
             st.dataframe(comparativo, use_container_width=True)
 
-                # === Exportar Resultados ===
-    if st.button("💾 Exportar Resultados"):
-        caminho = exportar_resultados_cv(cv_summaries, formato="xlsx")
-        if caminho:
-            st.success("Arquivo exportado com sucesso!")
-            with open(caminho, "rb") as f:
-                st.download_button("📥 Baixar Relatório Excel", data=f, file_name="lynxtalent_resultados.xlsx")
+
 # === CHAT ===
 user_query = st.chat_input("Digite sua mensagem aqui...")
 if user_query and uploads:

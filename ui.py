@@ -19,13 +19,13 @@ def score_color(score):
 def render_cv_summary(summaries):
     st.markdown("### 📄 Resumo dos Currículos")
     for s in summaries:
-        with st.expander(f"📁 {s['nome_arquivo']}", expanded=False):
+        with st.expander(f"📁 {s.get('nome_arquivo', 'Sem nome')}", expanded=False):
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown(f"**📧 Email:** `{s['email']}`")
-                st.markdown(f"**📱 Telefone:** `{s['telefone']}`")
+                st.markdown(f"**📧 Email:** `{s.get('email', 'Não informado')}`")
+                st.markdown(f"**📱 Telefone:** `{s.get('telefone', 'Não informado')}`")
             with col2:
-                skills = s['skills_detectadas']
+                skills = s.get('skills_detectadas', [])
                 st.markdown("**🧠 Skills Detectadas:**")
                 if skills:
                     st.markdown("✅ " + " | ".join(skills))
@@ -38,6 +38,10 @@ def render_match_results(cv_summaries, requisitos_list, calcular_match_fn, avali
     for resumo in cv_summaries:
         texto = resumo.get("texto_cv", "")
         avaliacao = avaliar_perfil_fn(model_fn(), texto, requisitos_list)
+        resumo["score"] = round(avaliacao.get("score", 0.0), 1)
+        resumo["nivel"] = avaliacao.get("nivel", "Desconhecido")
+        resumo["compatibilidade"] = avaliacao.get("compatibilidade", "Não")
+        resumo["justificativa"] = avaliacao.get("justificativa", "Sem justificativa fornecida.")
         score = round(avaliacao.get("score", 0.0), 1)
         nivel = avaliacao.get("nivel", "Desconhecido")
         compat = avaliacao.get("compatibilidade", "Não")
@@ -45,12 +49,11 @@ def render_match_results(cv_summaries, requisitos_list, calcular_match_fn, avali
         cor = score_color(score)
         status = style_match_score(score)
 
-        # Match de palavras-chave
         _, encontrados, faltantes, todos = calcular_match_fn(texto, requisitos_list)
 
-        with st.expander(f"📂 {resumo['nome_arquivo']} — 🎯 Match: {score}%", expanded=False):
-            st.markdown(f"**📧 Email:** {resumo['email']}")
-            st.markdown(f"**📞 Telefone:** {resumo['telefone']}")
+        with st.expander(f"📂 {resumo.get('nome_arquivo', 'Sem nome')} — 🎯 Match: {score}%", expanded=False):
+            st.markdown(f"**📧 Email:** {resumo.get('email', '-')}")
+            st.markdown(f"**📞 Telefone:** {resumo.get('telefone', '-')}")
             st.markdown(f"**🎯 Score de compatibilidade (IA):** `{score}%`")
             st.progress(score / 100)
 
@@ -60,20 +63,28 @@ def render_match_results(cv_summaries, requisitos_list, calcular_match_fn, avali
             st.markdown(f"**📌 Justificativa:** {justificativa}")
 
             st.markdown("#### ✅ Pontos Fortes")
-            if encontrados:
-                st.markdown(", ".join(encontrados))
-            else:
-                st.markdown("*Nenhum requisito atendido*")
+            st.markdown(", ".join(encontrados) if encontrados else "*Nenhum requisito atendido*")
 
             st.markdown("#### ⚠️ Pontos a Melhorar")
-            if faltantes:
-                st.markdown(", ".join(faltantes))
-            else:
-                st.markdown("*Todos os requisitos foram atendidos!*")
+            st.markdown(", ".join(faltantes) if faltantes else "*Todos os requisitos foram atendidos!*")
 
             st.markdown("#### 📋 Comparativo de Requisitos")
-            comparativo = [
-                {"Requisito": r, "Status": "✔️ Encontrado" if r in encontrados else "❌ Não encontrado"}
-                for r in todos
-            ]
+            comparativo = [{"Requisito": r, "Status": "✔️ Encontrado" if r in encontrados else "❌ Não encontrado"} for r in todos]
             st.dataframe(comparativo, use_container_width=True)
+
+    # Botão de exportação ao final
+    # Ao final da função
+    st.markdown("---")
+    if st.button("🧮 Gerar Relatório", key="btn_gerar"):
+        from utils import exportar_resultados_cv
+        caminho = exportar_resultados_cv(cv_summaries, formato="xlsx")
+        if caminho:
+            st.success("✅ Relatório gerado com sucesso!")
+            with open(caminho, "rb") as f:
+                st.download_button(
+                    "📥 Baixar Relatório Excel",
+                    data=f,
+                    file_name="lynxtalent_resultados.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="btn_download"
+                )
