@@ -307,13 +307,13 @@ if user_query and uploads:
                 st.caption(doc.page_content)
         st.session_state.chat_history.append(AIMessage(content=resposta))
 
-# Visualização opcional do histórico do chat
+# Visualização do histórico do chat
 if st.session_state.chat_history:
     with st.expander("Histórico do chat"):
         for msg in st.session_state.chat_history:
             role = "Assistente" if isinstance(msg, AIMessage) else "Humano"
             st.markdown(f"**{role}:** {msg.content}")
-# Medição simples do tempo de execução
+# Tempo de execução
 start = time.time()
 end = time.time()
 
